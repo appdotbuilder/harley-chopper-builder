@@ -1,15 +1,44 @@
+import { db } from '../db';
+import { buildPartsTable, userBuildsTable, partsTable } from '../db/schema';
 import { type CreateBuildPartInput, type BuildPart } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function addPartToBuild(input: CreateBuildPartInput): Promise<BuildPart> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is adding a specific part to a user's build configuration.
-    // This supports the configurator/visualizer functionality for building custom choppers.
-    return Promise.resolve({
-        id: 0, // Placeholder ID
+export const addPartToBuild = async (input: CreateBuildPartInput): Promise<BuildPart> => {
+  try {
+    // Verify that the build exists
+    const buildExists = await db.select()
+      .from(userBuildsTable)
+      .where(eq(userBuildsTable.id, input.build_id))
+      .execute();
+
+    if (buildExists.length === 0) {
+      throw new Error(`Build with id ${input.build_id} not found`);
+    }
+
+    // Verify that the part exists
+    const partExists = await db.select()
+      .from(partsTable)
+      .where(eq(partsTable.id, input.part_id))
+      .execute();
+
+    if (partExists.length === 0) {
+      throw new Error(`Part with id ${input.part_id} not found`);
+    }
+
+    // Insert build part record
+    const result = await db.insert(buildPartsTable)
+      .values({
         build_id: input.build_id,
         part_id: input.part_id,
         quantity: input.quantity,
-        notes: input.notes,
-        created_at: new Date()
-    } as BuildPart);
-}
+        notes: input.notes
+      })
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Adding part to build failed:', error);
+    throw error;
+  }
+};

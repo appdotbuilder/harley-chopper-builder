@@ -1,8 +1,18 @@
+import { db } from '../db';
+import { partCategoriesTable } from '../db/schema';
 import { type PartCategory } from '../schema';
 
-export async function getPartCategories(): Promise<PartCategory[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all part categories (e.g., engine, frame, wheels, etc.)
-    // This will help organize parts for the configurator and build process.
-    return [];
-}
+export const getPartCategories = async (): Promise<PartCategory[]> => {
+  try {
+    // Fetch all part categories ordered by name
+    const results = await db.select()
+      .from(partCategoriesTable)
+      .orderBy(partCategoriesTable.name)
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to fetch part categories:', error);
+    throw error;
+  }
+};

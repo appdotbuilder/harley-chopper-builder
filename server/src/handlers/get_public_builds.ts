@@ -1,8 +1,23 @@
+import { db } from '../db';
+import { userBuildsTable } from '../db/schema';
 import { type GetPublicBuildsInput, type UserBuild } from '../schema';
+import { eq, desc } from 'drizzle-orm';
 
 export async function getPublicBuilds(input: GetPublicBuildsInput): Promise<UserBuild[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching public builds that users have shared with the community.
-    // This allows users to explore and get inspiration from other users' chopper builds.
-    return [];
+  try {
+    // Query public builds with pagination, ordered by most recent first
+    const results = await db.select()
+      .from(userBuildsTable)
+      .where(eq(userBuildsTable.is_public, true))
+      .orderBy(desc(userBuildsTable.created_at))
+      .limit(input.limit)
+      .offset(input.offset)
+      .execute();
+
+    // Return the results directly since no numeric columns need conversion
+    return results;
+  } catch (error) {
+    console.error('Failed to fetch public builds:', error);
+    throw error;
+  }
 }

@@ -1,8 +1,25 @@
+import { db } from '../db';
+import { buildGuideStepsTable } from '../db/schema';
 import { type BuildGuideStep } from '../schema';
+import { asc } from 'drizzle-orm';
 
-export async function getBuildGuideSteps(): Promise<BuildGuideStep[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all build guide steps in order for the step-by-step assembly guide.
-    // This provides users with a structured approach to building their Harley chopper.
-    return [];
-}
+export const getBuildGuideSteps = async (): Promise<BuildGuideStep[]> => {
+  try {
+    // Fetch all build guide steps ordered by step_number
+    const results = await db.select()
+      .from(buildGuideStepsTable)
+      .orderBy(asc(buildGuideStepsTable.step_number))
+      .execute();
+
+    // Convert numeric fields and return
+    return results.map(step => ({
+      ...step,
+      // No numeric conversions needed - all fields are already proper types
+      // step_number and estimated_time_minutes are integers (no conversion needed)
+      // All other fields are text, enum, or timestamp types
+    }));
+  } catch (error) {
+    console.error('Fetching build guide steps failed:', error);
+    throw error;
+  }
+};

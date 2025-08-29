@@ -1,19 +1,54 @@
+import { db } from '../db';
+import { userBuildsTable } from '../db/schema';
 import { type UpdateUserBuildInput, type UserBuild } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function updateUserBuild(input: UpdateUserBuildInput): Promise<UserBuild> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is updating a user's build configuration, including progress tracking.
-    // This allows users to modify their builds and track their assembly progress.
-    return Promise.resolve({
-        id: input.id,
-        user_id: 0, // Will be fetched from existing record
-        name: input.name || 'Updated Build',
-        description: input.description || null,
-        chopper_style_id: input.chopper_style_id || null,
-        is_public: input.is_public || false,
-        build_data: input.build_data || '{}',
-        progress_step: input.progress_step || 0,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as UserBuild);
-}
+export const updateUserBuild = async (input: UpdateUserBuildInput): Promise<UserBuild> => {
+  try {
+    // First, verify the build exists
+    const existingBuild = await db.select()
+      .from(userBuildsTable)
+      .where(eq(userBuildsTable.id, input.id))
+      .execute();
+
+    if (existingBuild.length === 0) {
+      throw new Error(`Build with id ${input.id} not found`);
+    }
+
+    // Prepare update data - only include fields that are defined
+    const updateData: Record<string, any> = {
+      updated_at: new Date()
+    };
+
+    if (input.name !== undefined) {
+      updateData['name'] = input.name;
+    }
+    if (input.description !== undefined) {
+      updateData['description'] = input.description;
+    }
+    if (input.chopper_style_id !== undefined) {
+      updateData['chopper_style_id'] = input.chopper_style_id;
+    }
+    if (input.is_public !== undefined) {
+      updateData['is_public'] = input.is_public;
+    }
+    if (input.build_data !== undefined) {
+      updateData['build_data'] = input.build_data;
+    }
+    if (input.progress_step !== undefined) {
+      updateData['progress_step'] = input.progress_step;
+    }
+
+    // Update the build record
+    const result = await db.update(userBuildsTable)
+      .set(updateData)
+      .where(eq(userBuildsTable.id, input.id))
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('User build update failed:', error);
+    throw error;
+  }
+};
